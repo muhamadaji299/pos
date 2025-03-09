@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
@@ -12,20 +13,48 @@ use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductTransaksiController;
 use App\Http\Controllers\TransactionController;
-use Illuminate\Support\Facades\Auth;
 
 use function Pest\Laravel\delete;
 
+
 Route::get('/', function () {
+    if (Auth::check()) {
+        // Misalkan user memiliki role, kita cek dulu
+        $user = Auth::user();
+        
+        if ($user->role == 'admin') {
+            return redirect()->route('admin.dashboard.index');
+        } elseif ($user->role == 'kasir') {
+            return redirect()->route('kasir.dashboard.index');
+        } else {
+            return redirect()->route('user.dashboard.index'); // Jika ada user biasa
+        }
+    }
+    
     return view('welcome');
 });
 
-
+Route::fallback(function (){
+    return response()->view('errors.404',[],404);
+});
 
 // Login Admin
 
 // Login
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::get('/login', function () {
+    if (Auth::check()) {
+        $user = Auth::user();
+        
+        if ($user->role == 'admin') {
+            return redirect()->route('admin.dashboard.index');
+        } elseif ($user->role == 'kasir') {
+            return redirect()->route('kasir.dashboard.index');
+        } else {
+            return redirect()->route('user.dashboard.index');
+        }
+    }
+    return app(AuthController::class)->showLoginForm();
+})->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
